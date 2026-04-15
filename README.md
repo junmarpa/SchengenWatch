@@ -1,20 +1,65 @@
-# EuroGate — EU Data Sovereignty Validator
+# SchengenWatch — EU Data Sovereignty Validator
 
 **Open-source network traffic validator for organisations operating under EU data sovereignty requirements.**
 
-EuroGate monitors outbound network communications in real time and alerts when traffic crosses EU borders — giving security, compliance, and legal teams continuous visibility into whether data flows respect jurisdictional boundaries required by GDPR, NIS2, DORA, and TISAX.
+SchengenWatch monitors outbound network communications in real time and alerts when traffic crosses EU borders — giving security, compliance, and legal teams continuous visibility into whether data flows respect jurisdictional boundaries required by GDPR, NIS2, DORA, and TISAX.
 
 ---
 
-## Why EuroGate
+## Why SchengenWatch
 
 EU-based organisations face increasing regulatory pressure to demonstrate that data — and the network communications that carry it — remain within defined jurisdictions. Auditors ask. Regulators require it. Proving it has historically meant expensive SIEM deployments or manual log reviews.
 
-EuroGate is a lightweight, self-hosted alternative that answers one question continuously:
+SchengenWatch is a lightweight, self-hosted alternative that answers one question continuously:
 
 > **Is our traffic staying where it should?**
 
 It classifies every outbound connection by destination country, flags anything leaving the EU, and highlights communications to specific high-interest jurisdictions. No data leaves your environment. No SaaS dependency. No per-seat licensing.
+
+---
+
+## Dashboard Screenshots
+
+> All views shown with demo data. The Damovo brand theme is applied throughout.
+
+### Sovereignty Overview
+
+Real-time KPI summary — total flows, EU/non-EU split, watch-list hits, and a live donut chart with top destination countries.
+
+![Sovereignty Overview](docs/screenshots/01-overview.png)
+
+---
+
+### Non-EU Alerts
+
+Primary compliance alert view — every flow crossing EU borders, flagged for GDPR Art. 44-49 review.
+
+![Non-EU Alerts](docs/screenshots/02-non-eu-alerts.png)
+
+---
+
+### EU Traffic
+
+Flows terminating within EU member states — compliant under GDPR adequacy provisions.
+
+![EU Traffic](docs/screenshots/03-eu-traffic.png)
+
+---
+
+### Watch List
+
+Flows to user-defined high-risk jurisdictions. Default watch countries: Russia, China, North Korea, Iran.
+
+![Watch List](docs/screenshots/04-watch-list.png)
+
+---
+
+### Recent Flows
+
+Live feed of the last 100 connections, auto-refreshing every 30 seconds.
+
+![Recent Flows](docs/screenshots/05-recent-flows.png)
+
 
 ---
 
@@ -41,7 +86,7 @@ Firewall / Router
 │ processor       │◀──────┘                        │
 │ tail → SQLite   │                                │
 └────────┬────────┘                                │
-         │ /data/eurogate.db                       │
+         │ /data/schengenwatch.db                       │
          ▼                                         │
 ┌─────────────────────────┐                        │
 │ backend                 │◀───────────────────────┘
@@ -77,7 +122,7 @@ Firewall / Router
 | **TISAX** | Automotive industry information security — data localisation is assessed |
 | **Schrems II** | Invalidated Privacy Shield; transfers to US require explicit legal basis |
 
-EuroGate does not replace legal advice or a formal Data Protection Impact Assessment. It provides the continuous technical evidence that supports those processes.
+SchengenWatch does not replace legal advice or a formal Data Protection Impact Assessment. It provides the continuous technical evidence that supports those processes.
 
 ---
 
@@ -105,8 +150,8 @@ cp ~/Downloads/GeoLite2-Country_*/GeoLite2-Country.mmdb mmdb/
 ## Quick Start
 
 ```bash
-git clone https://github.com/andrewsmhay/eurogate.git
-cd eurogate
+git clone https://github.com/andrewsmhay/schengenwatch.git
+cd schengenwatch
 
 # 1. Add your MaxMind database
 mkdir -p mmdb
@@ -138,17 +183,17 @@ Supported firewall log formats:
 **Cisco ASA:**
 ```
 logging enable
-logging host inside <EUROGATE_IP> 514
+logging host inside <SCHENGENWATCH_IP> 514
 logging trap informational
 ```
 
 **iptables:**
 ```bash
-# /etc/rsyslog.d/99-eurogate.conf
-*.* @<EUROGATE_IP>:514
+# /etc/rsyslog.d/99-schengenwatch.conf
+*.* @<SCHENGENWATCH_IP>:514
 ```
 
-**pfSense / OPNsense:** Status > System Logs > Settings > Remote Logging > `<EUROGATE_IP>:514`
+**pfSense / OPNsense:** Status > System Logs > Settings > Remote Logging > `<SCHENGENWATCH_IP>:514`
 
 ---
 
@@ -159,7 +204,7 @@ NetFlow provides richer data (byte counts, packet counts, flow duration) and is 
 **Cisco IOS / IOS-XE (v9):**
 ```
 ip flow-export version 9
-ip flow-export destination <EUROGATE_IP> 2055
+ip flow-export destination <SCHENGENWATCH_IP> 2055
 interface GigabitEthernet0/0
  ip flow ingress
  ip flow egress
@@ -168,14 +213,14 @@ interface GigabitEthernet0/0
 **Palo Alto (IPFIX):**
 ```
 Device > Server Profiles > NetFlow
-  Server: <EUROGATE_IP>  Port: 2055  Version: IPFIX
+  Server: <SCHENGENWATCH_IP>  Port: 2055  Version: IPFIX
 Network > Interfaces > <WAN interface> > NetFlow Profile
 ```
 
 **Fortinet FortiGate (v9):**
 ```
 config system netflow
-  set collector-ip <EUROGATE_IP>
+  set collector-ip <SCHENGENWATCH_IP>
   set collector-port 2055
 end
 ```
@@ -185,20 +230,20 @@ end
 /ip traffic-flow
 set enabled=yes interfaces=all
 /ip traffic-flow target
-add dst-address=<EUROGATE_IP> port=2055 version=5
+add dst-address=<SCHENGENWATCH_IP> port=2055 version=5
 ```
 
 **Juniper SRX (v9):**
 ```
 set forwarding-options sampling instance default family inet \
-    output flow-server <EUROGATE_IP> port 2055 version9 template ipv4
+    output flow-server <SCHENGENWATCH_IP> port 2055 version9 template ipv4
 ```
 
 ---
 
 ### PCAP Upload
 
-Upload a previously captured packet capture file and EuroGate will extract all TCP/UDP flows, geo-classify them, and add them to the database.
+Upload a previously captured packet capture file and SchengenWatch will extract all TCP/UDP flows, geo-classify them, and add them to the database.
 
 ```bash
 # Place pcap in the pcaps/ directory (git-ignored)
@@ -243,7 +288,7 @@ Flows are deduplicated — if a flow already exists from syslog or NetFlow, `las
 | Variable | Default | Description |
 |---|---|---|
 | `SENTINEL_LOG_FILE` | `/var/log/perimeter/traffic.jsonl` | syslog-ng output path |
-| `SENTINEL_DB_PATH` | `/data/eurogate.db` | SQLite database path |
+| `SENTINEL_DB_PATH` | `/data/schengenwatch.db` | SQLite database path |
 | `SENTINEL_BATCH` | `50` | Rows per commit |
 | `SENTINEL_POLL` | `0.5` | File poll interval (seconds) |
 
@@ -253,13 +298,13 @@ Flows are deduplicated — if a flow already exists from syslog or NetFlow, `las
 |---|---|---|
 | `NETFLOW_HOST` | `0.0.0.0` | Listen address |
 | `NETFLOW_PORT` | `2055` | Listen port |
-| `SENTINEL_DB_PATH` | `/data/eurogate.db` | SQLite database path |
+| `SENTINEL_DB_PATH` | `/data/schengenwatch.db` | SQLite database path |
 
 ### backend
 
 | Variable | Default | Description |
 |---|---|---|
-| `SENTINEL_DB_PATH` | `/data/eurogate.db` | SQLite database path |
+| `SENTINEL_DB_PATH` | `/data/schengenwatch.db` | SQLite database path |
 | `MAXMIND_DB_PATH` | `/mmdb/GeoLite2-Country.mmdb` | MaxMind MMDB path |
 | `STATIC_DIR` | `/app/static` | Dashboard static files |
 
@@ -295,7 +340,7 @@ CREATE TABLE traffic (
 ## File Structure
 
 ```
-eurogate/
+schengenwatch/
 ├── docker-compose.yml
 ├── README.md
 ├── .gitignore
@@ -326,7 +371,7 @@ eurogate/
 
 ## Contributing
 
-EuroGate is open source under the MIT licence. Contributions welcome — particularly:
+SchengenWatch is open source under the MIT licence. Contributions welcome — particularly:
 
 - Additional firewall log parsers (syslog-ng)
 - IPv6 flow support

@@ -3,13 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EuroGate — EU Data Sovereignty Validator</title>
+  <title>SchengenWatch — EU Data Sovereignty Validator</title>
   <meta name="description" content="Open-source EU data sovereignty validator. Continuous visibility into whether your network traffic respects jurisdictional boundaries." />
 
-  <!-- Fonts: Cabinet Grotesk (display) + Satoshi (body) from Fontshare -->
+  <!-- Fonts: Raleway (display) + Open Sans (body) — Damovo brand typefaces -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800&f[]=satoshi@300,400,500,700&f[]=jetbrains-mono@400,500&display=swap"
     rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700;800;900&family=Open+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
   />
 
   <!-- Chart.js -->
@@ -29,7 +31,7 @@
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <!-- SVG Logo: shield + crosshair -->
-      <svg aria-label="EuroGate" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-mark">
+      <svg aria-label="SchengenWatch" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-mark">
         <path d="M20 3L5 9V20C5 28.284 11.716 35 20 37C28.284 35 35 28.284 35 20V9L20 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
         <circle cx="20" cy="20" r="6" stroke="var(--accent)" stroke-width="2"/>
         <line x1="20" y1="9" x2="20" y2="13" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/>
@@ -37,7 +39,8 @@
         <line x1="9" y1="20" x2="13" y2="20" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/>
         <line x1="27" y1="20" x2="31" y2="20" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/>
       </svg>
-      <span class="logo-text">EuroGate</span>
+      <span class="logo-text">SchengenWatch</span>
+      <span class="logo-sub">by Damovo</span>
     </div>
 
     <nav class="sidebar-nav">
@@ -68,7 +71,8 @@
       </button>
     </nav>
 
-    <div class="sidebar-footer">
+    <div class="sidebar-footer damovo-footer">
+      <span class="damovo-wordmark">Damovo</span>
       <button class="nav-item" id="settings-btn" data-view="settings">
         <i data-lucide="settings-2"></i>
         <span>Settings</span>

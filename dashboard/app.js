@@ -5,6 +5,133 @@
 
 'use strict';
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  SchengenWatch — Static Demo Data
+//  Used when no backend is available (previews, screenshots, onboarding)
+// ═══════════════════════════════════════════════════════════════════════════
+const DEMO_DATA = {
+  '/api/health': { status: 'ok', mmdb: true, db: true, version: '1.0.0' },
+
+  '/api/stats/summary': {
+    total_flows: 18432,
+    total_communications: 94718,
+    eu_flows: 11204,
+    eu_communications: 71280,
+    non_eu_flows: 5814,
+    non_eu_communications: 19402,
+    watch_unique_flows: 412,
+    watch_communications: 3036,
+    eu_pct: 60.8,
+    non_eu_pct: 31.6,
+    watch_pct: 7.6,
+    unknown_flows: 1414
+  },
+
+  '/api/traffic/eu': { count: 11204, flows: [
+    { src_ip:'10.10.1.12', dst_ip:'195.148.127.36', dst_port:443, protocol:'TCP', country:'DE', count:8821, last_seen:'2026-04-15T18:52:14Z' },
+    { src_ip:'10.10.1.12', dst_ip:'77.245.25.1',    dst_port:443, protocol:'TCP', country:'FR', count:6134, last_seen:'2026-04-15T18:51:55Z' },
+    { src_ip:'10.10.2.55', dst_ip:'91.108.56.165',  dst_port:443, protocol:'TCP', country:'NL', count:5490, last_seen:'2026-04-15T18:51:42Z' },
+    { src_ip:'10.10.1.30', dst_ip:'104.244.42.195', dst_port:443, protocol:'TCP', country:'IE', count:4201, last_seen:'2026-04-15T18:50:33Z' },
+    { src_ip:'10.10.3.18', dst_ip:'213.180.204.3',  dst_port:443, protocol:'TCP', country:'SE', count:3788, last_seen:'2026-04-15T18:49:12Z' },
+    { src_ip:'10.10.1.44', dst_ip:'185.53.178.14',  dst_port:443, protocol:'TCP', country:'BE', count:3210, last_seen:'2026-04-15T18:48:02Z' },
+    { src_ip:'10.10.2.77', dst_ip:'93.184.216.34',  dst_port:80,  protocol:'TCP', country:'DE', count:2901, last_seen:'2026-04-15T18:47:11Z' },
+    { src_ip:'10.10.1.12', dst_ip:'78.46.0.1',      dst_port:443, protocol:'TCP', country:'DE', count:2488, last_seen:'2026-04-15T18:46:30Z' },
+    { src_ip:'10.10.4.22', dst_ip:'82.195.147.14',  dst_port:443, protocol:'TCP', country:'ES', count:2001, last_seen:'2026-04-15T18:45:05Z' },
+    { src_ip:'10.10.1.55', dst_ip:'130.255.240.1',  dst_port:443, protocol:'TCP', country:'PL', count:1840, last_seen:'2026-04-15T18:44:22Z' }
+  ]},
+
+  '/api/traffic/non-eu': { count: 5814, flows: [
+    { src_ip:'10.10.1.12', dst_ip:'172.217.16.46',  dst_port:443, protocol:'TCP', country:'US', count:4812, last_seen:'2026-04-15T18:52:01Z' },
+    { src_ip:'10.10.2.33', dst_ip:'13.107.42.14',   dst_port:443, protocol:'TCP', country:'US', count:3924, last_seen:'2026-04-15T18:51:45Z' },
+    { src_ip:'10.10.3.18', dst_ip:'52.84.45.20',    dst_port:443, protocol:'TCP', country:'US', count:2811, last_seen:'2026-04-15T18:51:10Z' },
+    { src_ip:'10.10.1.30', dst_ip:'203.0.113.50',   dst_port:443, protocol:'TCP', country:'SG', count:1204, last_seen:'2026-04-15T18:50:48Z' },
+    { src_ip:'10.10.4.55', dst_ip:'185.199.108.153',dst_port:443, protocol:'TCP', country:'US', count:1100, last_seen:'2026-04-15T18:49:55Z' },
+    { src_ip:'10.10.2.11', dst_ip:'104.16.88.20',   dst_port:443, protocol:'TCP', country:'US', count:988,  last_seen:'2026-04-15T18:48:32Z' },
+    { src_ip:'10.10.1.44', dst_ip:'1.1.1.1',        dst_port:53,  protocol:'UDP', country:'AU', count:712,  last_seen:'2026-04-15T18:47:15Z' },
+    { src_ip:'10.10.3.22', dst_ip:'8.8.8.8',        dst_port:53,  protocol:'UDP', country:'US', count:651,  last_seen:'2026-04-15T18:46:44Z' },
+    { src_ip:'10.10.1.77', dst_ip:'54.230.150.27',  dst_port:443, protocol:'TCP', country:'US', count:480,  last_seen:'2026-04-15T18:45:30Z' },
+    { src_ip:'10.10.2.55', dst_ip:'103.21.244.0',   dst_port:443, protocol:'TCP', country:'SG', count:408,  last_seen:'2026-04-15T18:44:10Z' }
+  ]},
+
+  '/api/traffic/watch': { count: 412, flows: [
+    { src_ip:'10.10.1.12', dst_ip:'95.213.134.4',   dst_port:443, protocol:'TCP', country:'RU', count:288, last_seen:'2026-04-15T17:44:02Z' },
+    { src_ip:'10.10.2.33', dst_ip:'203.208.40.15',  dst_port:80,  protocol:'TCP', country:'CN', count:124, last_seen:'2026-04-15T17:40:18Z' },
+    { src_ip:'10.10.1.55', dst_ip:'95.213.134.12',  dst_port:8443,protocol:'TCP', country:'RU', count:88,  last_seen:'2026-04-15T16:55:44Z' },
+    { src_ip:'10.10.4.22', dst_ip:'185.220.101.38', dst_port:443, protocol:'TCP', country:'RU', count:76,  last_seen:'2026-04-15T16:40:22Z' },
+    { src_ip:'10.10.3.18', dst_ip:'119.29.29.29',   dst_port:53,  protocol:'UDP', country:'CN', count:44,  last_seen:'2026-04-15T15:22:10Z' }
+  ]},
+
+  '/api/top/countries': { countries: [
+    { country:'DE', count:21440 },
+    { country:'US', count:14188 },
+    { country:'FR', count:9822 },
+    { country:'NL', count:8104 },
+    { country:'IE', count:7350 },
+    { country:'SE', count:5920 },
+    { country:'BE', count:4810 },
+    { country:'SG', count:3204 },
+    { country:'ES', count:2880 },
+    { country:'AU', count:1740 }
+  ],
+
+  '/api/top/destinations': { destinations: [
+    { dst_ip:'172.217.16.46', dst_port:443, country:'US', protocol:'TCP', count:4812 },
+    { dst_ip:'195.148.127.36',dst_port:443, country:'DE', protocol:'TCP', count:4400 },
+    { dst_ip:'13.107.42.14',  dst_port:443, country:'US', protocol:'TCP', count:3924 },
+    { dst_ip:'77.245.25.1',   dst_port:443, country:'FR', protocol:'TCP', count:3800 },
+    { dst_ip:'91.108.56.165', dst_port:443, country:'NL', protocol:'TCP', count:3200 },
+    { dst_ip:'52.84.45.20',   dst_port:443, country:'US', protocol:'TCP', count:2811 },
+    { dst_ip:'104.244.42.195',dst_port:443, country:'IE', protocol:'TCP', count:2400 },
+    { dst_ip:'213.180.204.3', dst_port:443, country:'SE', protocol:'TCP', count:1990 },
+    { dst_ip:'185.53.178.14', dst_port:443, country:'BE', protocol:'TCP', count:1600 },
+    { dst_ip:'203.0.113.50',  dst_port:443, country:'SG', protocol:'TCP', count:1204 }
+  ]},
+
+  '/api/recent': (function() {
+    const rawFlows = [
+      ['10.10.1.12','172.217.16.46',443,'TCP','US'],
+      ['10.10.2.33','195.148.127.36',443,'TCP','DE'],
+      ['10.10.1.30','77.245.25.1',443,'TCP','FR'],
+      ['10.10.3.18','91.108.56.165',443,'TCP','NL'],
+      ['10.10.4.22','95.213.134.4',443,'TCP','RU'],
+      ['10.10.1.44','104.244.42.195',443,'TCP','IE'],
+      ['10.10.2.55','213.180.204.3',443,'TCP','SE'],
+      ['10.10.1.77','13.107.42.14',443,'TCP','US'],
+      ['10.10.2.11','203.208.40.15',80,'TCP','CN'],
+      ['10.10.3.22','1.1.1.1',53,'UDP','AU'],
+      ['10.10.1.12','185.53.178.14',443,'TCP','BE'],
+      ['10.10.4.55','52.84.45.20',443,'TCP','US'],
+      ['10.10.2.33','185.220.101.38',443,'TCP','RU'],
+      ['10.10.1.55','78.46.0.1',443,'TCP','DE'],
+      ['10.10.3.18','93.184.216.34',80,'TCP','DE'],
+    ];
+    const now = Date.now();
+    return { flows: rawFlows.map((f,i) => ({
+      src_ip: f[0], dst_ip: f[1], dst_port: f[2], protocol: f[3], country: f[4],
+      last_seen: new Date(now - i * 42000).toISOString(),
+      count: Math.floor(Math.random()*500)+50
+    })) };
+  })(),
+
+  '/api/settings/watch': { countries: ['RU','CN','KP','IR'] },
+
+  '/api/countries/list': [
+    { iso:'DE', name:'Germany', count:21440 },
+    { iso:'US', name:'United States', count:14188 },
+    { iso:'FR', name:'France', count:9822 },
+    { iso:'NL', name:'Netherlands', count:8104 },
+    { iso:'IE', name:'Ireland', count:7350 },
+    { iso:'SE', name:'Sweden', count:5920 },
+    { iso:'BE', name:'Belgium', count:4810 },
+    { iso:'SG', name:'Singapore', count:3204 },
+    { iso:'ES', name:'Spain', count:2880 },
+    { iso:'AU', name:'Australia', count:1740 },
+    { iso:'RU', name:'Russia', count:412 },
+    { iso:'CN', name:'China', count:168 },
+    { iso:'PL', name:'Poland', count:1840 }
+  ]
+};
+
 // ── Config ────────────────────────────────────────────────────────────────
 let API_BASE = '';  // empty = same origin; set in settings to override
 
@@ -58,10 +185,23 @@ function toast(msg, type = 'success') {
 }
 
 async function apiFetch(path) {
+  // If no backend is running, return static demo data for screenshots/previews
+  if (!API_BASE || API_BASE === window.location.origin) {
+    const demo = DEMO_DATA[path.split('?')[0]];
+    if (demo !== undefined) return Promise.resolve(
+      typeof demo === 'function' ? demo(path) : demo
+    );
+  }
   const url = API_BASE ? `${API_BASE.replace(/\/$/, '')}${path}` : path;
-  const res  = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${path}`);
-  return res.json();
+  return fetch(url).then(r => {
+    if (!r.ok) {
+      // Fall back to demo data on backend error
+      const demo = DEMO_DATA[path.split('?')[0]];
+      if (demo !== undefined) return typeof demo === 'function' ? demo(path) : demo;
+      throw new Error(`HTTP ${r.status}: ${path}`);
+    }
+    return r.json();
+  });
 }
 
 // ── Theme ─────────────────────────────────────────────────────────────────
@@ -337,7 +477,7 @@ async function loadNonEU() {
     $('#noneu-comms').textContent  = fmt(totalComms);
     $('#noneu-table-meta').textContent = `${fmt(uniqueFlows)} flows`;
 
-    // Alert banner — non-EU traffic is the primary compliance concern in EuroGate
+    // Alert banner — non-EU traffic is the primary compliance concern in SchengenWatch
     const alertBar  = $('#noneu-alert');
     const alertText = $('#noneu-alert-text');
     if (alertBar) {

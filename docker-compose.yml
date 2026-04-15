@@ -1,6 +1,6 @@
 ---
 # ═══════════════════════════════════════════════════════════════════════════
-#  EuroGate — EU Data Sovereignty Validator — docker-compose.yml
+#  SchengenWatch — EU Data Sovereignty Validator — docker-compose.yml
 #
 #  Services:
 #    syslog    — Alpine + syslog-ng  (UDP/TCP 514, TCP 601, TCP 6514)
@@ -9,9 +9,9 @@
 #    backend   — FastAPI + MaxMind GeoLite2 API  (HTTP 8000)
 #
 #  Volumes:
-#    eurogate-logs  — syslog-ng writes traffic.jsonl here
+#    schengenwatch-logs  — syslog-ng writes traffic.jsonl here
 #                     processor reads from the same location
-#    eurogate-db    — SQLite database (shared between processor & backend)
+#    schengenwatch-db    — SQLite database (shared between processor & backend)
 #    ./mmdb         — bind-mount your GeoLite2-Country.mmdb here
 #
 #  Quick start:
@@ -27,7 +27,7 @@ services:
     build:
       context: ./syslog-ng
       dockerfile: Dockerfile
-    container_name: eurogate-syslog
+    container_name: schengenwatch-syslog
     restart: unless-stopped
     ports:
       - "514:514/udp"   # Classic syslog (UDP)
@@ -35,9 +35,9 @@ services:
       - "601:601/tcp"   # RFC 5424 syslog
       - "6514:6514/tcp" # TLS syslog (future — mount certs)
     volumes:
-      - eurogate-logs:/var/log/perimeter
+      - schengenwatch-logs:/var/log/perimeter
     networks:
-      - eurogate-net
+      - schengenwatch-net
     healthcheck:
       test: ["CMD-SHELL", "pgrep syslog-ng || exit 1"]
       interval: 30s
@@ -49,20 +49,20 @@ services:
     build:
       context: ./processor
       dockerfile: Dockerfile
-    container_name: eurogate-processor
+    container_name: schengenwatch-processor
     restart: unless-stopped
     depends_on:
       - syslog
     volumes:
-      - eurogate-logs:/var/log/perimeter:ro   # reads traffic.jsonl
-      - eurogate-db:/data                     # writes sentinel.db
+      - schengenwatch-logs:/var/log/perimeter:ro   # reads traffic.jsonl
+      - schengenwatch-db:/data                     # writes sentinel.db
     environment:
       SENTINEL_LOG_FILE: /var/log/perimeter/traffic.jsonl
       SENTINEL_DB_PATH:  /data/sentinel.db
       SENTINEL_BATCH:    "50"
       SENTINEL_POLL:     "0.5"
     networks:
-      - eurogate-net
+      - schengenwatch-net
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f processor.py || exit 1"]
       interval: 30s
@@ -74,21 +74,21 @@ services:
     build:
       context: ./netflow
       dockerfile: Dockerfile
-    container_name: eurogate-netflow
+    container_name: schengenwatch-netflow
     restart: unless-stopped
     depends_on:
       - processor
     ports:
       - "2055:2055/udp"   # NetFlow v5/v9 and IPFIX
     volumes:
-      - eurogate-db:/data                     # writes to same sentinel.db
+      - schengenwatch-db:/data                     # writes to same sentinel.db
     environment:
       NETFLOW_HOST:      0.0.0.0
       NETFLOW_PORT:      "2055"
       SENTINEL_DB_PATH:  /data/sentinel.db
       SENTINEL_BATCH:    "50"
     networks:
-      - eurogate-net
+      - schengenwatch-net
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f collector.py || exit 1"]
       interval: 30s
@@ -100,14 +100,14 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: eurogate-backend
+    container_name: schengenwatch-backend
     restart: unless-stopped
     depends_on:
       - processor
     ports:
       - "8000:8000"
     volumes:
-      - eurogate-db:/data                     # reads sentinel.db
+      - schengenwatch-db:/data                     # reads sentinel.db
       - ./mmdb:/mmdb:ro                       # GeoLite2-Country.mmdb
       - ./dashboard:/app/static:ro            # dashboard HTML/CSS/JS
     environment:
@@ -115,7 +115,7 @@ services:
       MAXMIND_DB_PATH:   /mmdb/GeoLite2-Country.mmdb
       STATIC_DIR:        /app/static
     networks:
-      - eurogate-net
+      - schengenwatch-net
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8000/api/health || exit 1"]
       interval: 30s
@@ -124,12 +124,12 @@ services:
 
 # ── Networks ──────────────────────────────────────────────────────────────
 networks:
-  eurogate-net:
+  schengenwatch-net:
     driver: bridge
 
 # ── Volumes ───────────────────────────────────────────────────────────────
 volumes:
-  eurogate-logs:
+  schengenwatch-logs:
     driver: local
-  eurogate-db:
+  schengenwatch-db:
     driver: local

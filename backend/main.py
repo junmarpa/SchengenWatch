@@ -1,5 +1,5 @@
 """
-EuroGate — EU Data Sovereignty Validator — FastAPI Backend
+SchengenWatch — EU Data Sovereignty Validator — FastAPI Backend
 ===========================================================
 Serves the dashboard API:
 

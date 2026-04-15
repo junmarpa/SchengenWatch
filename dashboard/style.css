@@ -1,42 +1,53 @@
 /* ═══════════════════════════════════════════════════════
-   EuroGate — EU Data Sovereignty Validator Stylesheet
-   Palette: dark navy/slate cybersecurity aesthetic
-   Fonts: Cabinet Grotesk (display) + Satoshi (body)
-         + JetBrains Mono (IP/data values)
+   SchengenWatch — EU Data Sovereignty Validator Stylesheet
+   Palette: Damovo brand colours (burgundy #640032 + Damovo blue #007bc2)
+   Fonts:   Raleway (display/headings) + Open Sans (body)
+          + JetBrains Mono (IP/data values)
+   Brand:   damovo.com
 ═══════════════════════════════════════════════════════ */
 
 /* ── Design Tokens ──────────────────────────────────── */
 :root {
-  /* Accent */
-  --accent:          #00d4aa;
-  --accent-dim:      #00b890;
-  --accent-glow:     rgba(0, 212, 170, 0.15);
-  --accent-subtle:   rgba(0, 212, 170, 0.08);
+  /* ── Damovo Brand Palette ────────────────────────────── */
+  --damovo-burgundy:        #640032;   /* primary brand / hero bg     */
+  --damovo-burgundy-mid:    #93004a;   /* hover states, gradients     */
+  --damovo-burgundy-dark:   #3b001e;   /* deep hover                  */
+  --damovo-burgundy-darker: #270013;   /* active/focus                */
+  --damovo-blue:            #007bc2;   /* CTA buttons, links, accent  */
+  --damovo-blue-mid:        #0066a1;   /* button hover                */
+  --damovo-blue-dark:       #004a75;   /* button active               */
+  --damovo-blue-navy:       #003a5c;   /* focus ring                  */
 
-  /* Warning / Watch */
-  --warn:            #f59e0b;
-  --warn-dim:        #d97706;
-  --warn-subtle:     rgba(245, 158, 11, 0.10);
-  --warn-glow:       rgba(245, 158, 11, 0.18);
+  /* Accent — Damovo Blue as primary interactive colour */
+  --accent:          #007bc2;
+  --accent-dim:      #0066a1;
+  --accent-glow:     rgba(0, 123, 194, 0.18);
+  --accent-subtle:   rgba(0, 123, 194, 0.10);
 
-  /* Danger */
-  --danger:          #f43f5e;
-  --danger-dim:      #e11d48;
-  --danger-subtle:   rgba(244, 63, 94, 0.10);
+  /* Warning / Watch — amber for attention states */
+  --warn:            #f2901c;
+  --warn-dim:        #d97a10;
+  --warn-subtle:     rgba(242, 144, 28, 0.12);
+  --warn-glow:       rgba(242, 144, 28, 0.22);
 
-  /* Blue (EU) */
-  --blue:            #60a5fa;
-  --blue-dim:        #3b82f6;
-  --blue-subtle:     rgba(96, 165, 250, 0.10);
+  /* Danger — Damovo burgundy-mid for elevated alerts */
+  --danger:          #93004a;
+  --danger-dim:      #640032;
+  --danger-subtle:   rgba(147, 0, 74, 0.12);
 
-  /* Violet (Non-EU) */
-  --violet:          #a78bfa;
-  --violet-dim:      #7c3aed;
-  --violet-subtle:   rgba(167, 139, 250, 0.10);
+  /* Blue (EU compliant) — lighter Damovo blue */
+  --blue:            #4db8f0;
+  --blue-dim:        #007bc2;
+  --blue-subtle:     rgba(0, 123, 194, 0.12);
 
-  /* Fonts */
-  --font-display:    'Cabinet Grotesk', 'Helvetica Neue', sans-serif;
-  --font-body:       'Satoshi', 'Inter', sans-serif;
+  /* Violet (Non-EU alert) — Damovo burgundy-mid */
+  --violet:          #c0487a;
+  --violet-dim:      #93004a;
+  --violet-subtle:   rgba(147, 0, 74, 0.10);
+
+  /* Fonts — Damovo brand typefaces (Raleway + Open Sans) */
+  --font-display:    'Raleway', 'Helvetica Neue', sans-serif;
+  --font-body:       'Open Sans', 'Inter', sans-serif;
   --font-mono:       'JetBrains Mono', 'Fira Code', monospace;
 
   /* Type scale */
@@ -73,35 +84,37 @@
 
 /* ── Dark Theme (default) ───────────────────────────── */
 [data-theme="dark"] {
-  --bg:            #0a0c10;
-  --surface:       #10141c;
-  --surface-2:     #161b26;
-  --surface-3:     #1c2333;
-  --border:        #232b3e;
-  --border-2:      #2d3750;
-  --text:          #d4daf0;
-  --text-muted:    #7b8bb2;
-  --text-faint:    #424d68;
-  --sidebar-bg:    #0d1119;
-  --sidebar-text:  #9aaac8;
-  --topbar-bg:     rgba(10, 12, 16, 0.92);
+  /* Dark theme: deep Damovo burgundy-rooted dark surfaces */
+  --bg:            #1a0010;
+  --surface:       #240016;
+  --surface-2:     #2e001d;
+  --surface-3:     #3b0026;
+  --border:        #52003a;
+  --border-2:      #640032;
+  --text:          #f0e8ed;
+  --text-muted:    #b894a8;
+  --text-faint:    #6b3d58;
+  --sidebar-bg:    #130009;
+  --sidebar-text:  #c4a0b6;
+  --topbar-bg:     rgba(26, 0, 16, 0.94);
 }
 
 /* ── Light Theme ────────────────────────────────────── */
 [data-theme="light"] {
-  --bg:            #f0f4fb;
+  /* Light theme: clean white with Damovo burgundy sidebar */
+  --bg:            #f8f8ff;
   --surface:       #ffffff;
-  --surface-2:     #f7f9fd;
-  --surface-3:     #eef2fa;
-  --border:        #dce3f0;
-  --border-2:      #c8d3e8;
-  --text:          #1a2040;
-  --text-muted:    #5a6b8a;
-  --text-faint:    #a0afc8;
-  --sidebar-bg:    #111827;
-  --sidebar-text:  #9aaac8;
-  --topbar-bg:     rgba(240, 244, 251, 0.92);
-  --accent-subtle: rgba(0, 212, 170, 0.06);
+  --surface-2:     #f5f0f3;
+  --surface-3:     #ece3e8;
+  --border:        #ddc8d4;
+  --border-2:      #c8a0b4;
+  --text:          #1c1c1c;
+  --text-muted:    #5a3a4a;
+  --text-faint:    #a08090;
+  --sidebar-bg:    #640032;
+  --sidebar-text:  #f0d0e0;
+  --topbar-bg:     rgba(248, 248, 255, 0.94);
+  --accent-subtle: rgba(0, 123, 194, 0.08);
 }
 
 /* ── Reset & Base ───────────────────────────────────── */
@@ -185,6 +198,47 @@ table { border-collapse: collapse; width: 100%; }
   color: #ffffff;
   white-space: nowrap;
   letter-spacing: -0.02em;
+}
+
+.logo-sub {
+  font-family: var(--font-body);
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  white-space: nowrap;
+  line-height: 1;
+  margin-top: -2px;
+}
+
+/* Damovo footer branding strip */
+.damovo-footer {
+  border-top: 1px solid var(--damovo-burgundy, #640032);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding-bottom: var(--sp-4);
+}
+
+.damovo-footer::before {
+  content: 'powered by';
+  display: block;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255,255,255,0.3);
+  padding-top: var(--sp-1);
+}
+
+.damovo-wordmark {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--text-sm);
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .shell.collapsed .logo-text,
@@ -335,7 +389,7 @@ table { border-collapse: collapse; width: 100%; }
   gap: var(--sp-2);
   font-size: var(--text-xs);
   font-weight: 600;
-  color: var(--accent);
+  color: var(--damovo-blue, #007bc2);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -344,7 +398,7 @@ table { border-collapse: collapse; width: 100%; }
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--damovo-blue, #007bc2);
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -375,11 +429,12 @@ table { border-collapse: collapse; width: 100%; }
 .btn i { width: 15px; height: 15px; }
 
 .btn-primary {
-  background: var(--accent);
-  color: #06201c;
-  border: 1px solid var(--accent-dim);
+  background: var(--damovo-blue, #007bc2);
+  color: #ffffff;
+  border: 1px solid var(--damovo-blue-mid, #0066a1);
 }
-.btn-primary:hover { background: var(--accent-dim); }
+.btn-primary:hover { background: var(--damovo-blue-mid, #0066a1); }
+.btn-primary:active { background: var(--damovo-blue-dark, #004a75); }
 
 .btn-ghost {
   background: transparent;

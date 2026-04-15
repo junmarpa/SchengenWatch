@@ -1,0 +1,39 @@
+# MaxMind database — never commit, download separately
+mmdb/
+*.mmdb
+
+# SQLite database — runtime data, not source
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# syslog-ng runtime output
+*.jsonl
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker
+.docker/
+
+# Logs
+*.log

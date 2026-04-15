@@ -1,0 +1,134 @@
+---
+# ═══════════════════════════════════════════════════════════════════════════
+#  Perimeter Sentinel — docker-compose.yml
+#
+#  Services:
+#    syslog    — Alpine + syslog-ng  (UDP/TCP 514, TCP 601, TCP 6514)
+#    processor — Python tail + SQLite writer
+#    backend   — FastAPI + MaxMind GeoLite2 API  (HTTP 8000)
+#
+#  Volumes:
+#    sentinel-logs  — syslog-ng writes traffic.jsonl here
+#                     processor reads from the same location
+#    sentinel-db    — SQLite database (shared between processor & backend)
+#    ./mmdb         — bind-mount your GeoLite2-Country.mmdb here
+#
+#  Quick start:
+#    1. Place GeoLite2-Country.mmdb in ./mmdb/
+#    2. docker compose up -d
+#    3. Open http://localhost:8000
+# ═══════════════════════════════════════════════════════════════════════════
+
+services:
+
+  # ── Syslog-ng receiver ────────────────────────────────────────────────────
+  syslog:
+    build:
+      context: ./syslog-ng
+      dockerfile: Dockerfile
+    container_name: sentinel-syslog
+    restart: unless-stopped
+    ports:
+      - "514:514/udp"   # Classic syslog (UDP)
+      - "514:514/tcp"   # Classic syslog (TCP)
+      - "601:601/tcp"   # RFC 5424 syslog
+      - "6514:6514/tcp" # TLS syslog (future — mount certs)
+    volumes:
+      - sentinel-logs:/var/log/perimeter
+    networks:
+      - sentinel-net
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep syslog-ng || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Log processor (tail → SQLite) ─────────────────────────────────────────
+  processor:
+    build:
+      context: ./processor
+      dockerfile: Dockerfile
+    container_name: sentinel-processor
+    restart: unless-stopped
+    depends_on:
+      - syslog
+    volumes:
+      - sentinel-logs:/var/log/perimeter:ro   # reads traffic.jsonl
+      - sentinel-db:/data                     # writes sentinel.db
+    environment:
+      SENTINEL_LOG_FILE: /var/log/perimeter/traffic.jsonl
+      SENTINEL_DB_PATH:  /data/sentinel.db
+      SENTINEL_BATCH:    "50"
+      SENTINEL_POLL:     "0.5"
+    networks:
+      - sentinel-net
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f processor.py || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── NetFlow / IPFIX collector ──────────────────────────────────────────────
+  netflow:
+    build:
+      context: ./netflow
+      dockerfile: Dockerfile
+    container_name: sentinel-netflow
+    restart: unless-stopped
+    depends_on:
+      - processor
+    ports:
+      - "2055:2055/udp"   # NetFlow v5/v9 and IPFIX
+    volumes:
+      - sentinel-db:/data                     # writes to same sentinel.db
+    environment:
+      NETFLOW_HOST:      0.0.0.0
+      NETFLOW_PORT:      "2055"
+      SENTINEL_DB_PATH:  /data/sentinel.db
+      SENTINEL_BATCH:    "50"
+    networks:
+      - sentinel-net
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f collector.py || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── FastAPI backend + dashboard ───────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sentinel-backend
+    restart: unless-stopped
+    depends_on:
+      - processor
+    ports:
+      - "8000:8000"
+    volumes:
+      - sentinel-db:/data                     # reads sentinel.db
+      - ./mmdb:/mmdb:ro                       # GeoLite2-Country.mmdb
+      - ./dashboard:/app/static:ro            # dashboard HTML/CSS/JS
+    environment:
+      SENTINEL_DB_PATH:  /data/sentinel.db
+      MAXMIND_DB_PATH:   /mmdb/GeoLite2-Country.mmdb
+      STATIC_DIR:        /app/static
+    networks:
+      - sentinel-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+# ── Networks ──────────────────────────────────────────────────────────────
+networks:
+  sentinel-net:
+    driver: bridge
+
+# ── Volumes ───────────────────────────────────────────────────────────────
+volumes:
+  sentinel-logs:
+    driver: local
+  sentinel-db:
+    driver: local

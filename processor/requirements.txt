@@ -1,0 +1,2 @@
+# No third-party dependencies required — stdlib only
+# (uuid, json, sqlite3, datetime, pathlib are all built-in)

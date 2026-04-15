@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Perimeter Sentinel — Traffic Intelligence</title>
+  <meta name="description" content="Real-time perimeter traffic geo-intelligence dashboard. Monitor EU, non-EU, and watch-country communications." />
+
+  <!-- Fonts: Cabinet Grotesk (display) + Satoshi (body) from Fontshare -->
+  <link
+    href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800&f[]=satoshi@300,400,500,700&f[]=jetbrains-mono@400,500&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+
+  <!-- Lucide icons -->
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ── LAYOUT SHELL ──────────────────────────────────────── -->
+<div class="shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <!-- SVG Logo: shield + crosshair -->
+      <svg aria-label="Perimeter Sentinel" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-mark">
+        <path d="M20 3L5 9V20C5 28.284 11.716 35 20 37C28.284 35 35 28.284 35 20V9L20 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <circle cx="20" cy="20" r="6" stroke="var(--accent)" stroke-width="2"/>
+        <line x1="20" y1="9" x2="20" y2="13" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="20" y1="27" x2="20" y2="31" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="9" y1="20" x2="13" y2="20" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="27" y1="20" x2="31" y2="20" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span class="logo-text">Sentinel</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-view="overview" aria-current="page">
+        <i data-lucide="layout-dashboard"></i>
+        <span>Overview</span>
+      </button>
+      <button class="nav-item" data-view="country">
+        <i data-lucide="map-pin"></i>
+        <span>By Country</span>
+      </button>
+      <button class="nav-item" data-view="eu">
+        <i data-lucide="globe-2"></i>
+        <span>EU Traffic</span>
+      </button>
+      <button class="nav-item" data-view="non-eu">
+        <i data-lucide="globe"></i>
+        <span>Non-EU Traffic</span>
+      </button>
+      <button class="nav-item" data-view="watch">
+        <i data-lucide="shield-alert"></i>
+        <span>Watch Countries</span>
+        <span class="badge-watch" id="watch-badge">0</span>
+      </button>
+      <button class="nav-item" data-view="recent">
+        <i data-lucide="activity"></i>
+        <span>Recent Flows</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="nav-item" id="settings-btn" data-view="settings">
+        <i data-lucide="settings-2"></i>
+        <span>Settings</span>
+      </button>
+      <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark mode">
+        <i data-lucide="moon"></i>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <div class="main-area">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">
+          <i data-lucide="menu"></i>
+        </button>
+        <div class="breadcrumb" id="breadcrumb">Overview</div>
+      </div>
+      <div class="topbar-right">
+        <div class="live-indicator" id="live-indicator">
+          <span class="live-dot"></span>
+          <span>Live</span>
+        </div>
+        <div class="last-updated" id="last-updated">—</div>
+        <button class="btn btn-ghost btn-sm" id="refresh-btn" title="Refresh data">
+          <i data-lucide="refresh-cw"></i>
+        </button>
+        <button class="btn btn-ghost btn-sm" id="seed-btn" title="Inject demo data">
+          <i data-lucide="database-zap"></i>
+          <span>Demo Data</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- View container -->
+    <main class="content" id="content">
+
+      <!-- ── VIEW: OVERVIEW ── -->
+      <section class="view active" id="view-overview">
+        <div class="view-header">
+          <h1>Traffic Overview</h1>
+          <p class="view-sub">All perimeter flows, geo-classified by destination</p>
+        </div>
+
+        <!-- KPI row -->
+        <div class="kpi-grid">
+          <div class="kpi-card" data-testid="kpi-total">
+            <div class="kpi-label">Total Unique Flows</div>
+            <div class="kpi-value" id="kpi-total-flows">—</div>
+            <div class="kpi-sub" id="kpi-total-comms">— communications</div>
+          </div>
+          <div class="kpi-card kpi-eu" data-testid="kpi-eu">
+            <div class="kpi-label">EU Destinations</div>
+            <div class="kpi-value" id="kpi-eu-flows">—</div>
+            <div class="kpi-sub" id="kpi-eu-comms">— communications</div>
+          </div>
+          <div class="kpi-card kpi-noneu" data-testid="kpi-noneu">
+            <div class="kpi-label">Non-EU Destinations</div>
+            <div class="kpi-value" id="kpi-noneu-flows">—</div>
+            <div class="kpi-sub" id="kpi-noneu-comms">— communications</div>
+          </div>
+          <div class="kpi-card kpi-watch" data-testid="kpi-watch">
+            <div class="kpi-label">Watch Country Hits</div>
+            <div class="kpi-value" id="kpi-watch-flows">—</div>
+            <div class="kpi-sub" id="kpi-watch-comms">— communications</div>
+          </div>
+        </div>
+
+        <!-- Charts row -->
+        <div class="charts-row">
+          <div class="chart-card wide">
+            <div class="chart-header">
+              <span class="chart-title">Traffic by Category</span>
+              <span class="chart-meta" id="chart-donut-meta"></span>
+            </div>
+            <div class="chart-body donut-wrap">
+              <canvas id="chart-donut" aria-label="Traffic category distribution" role="img"></canvas>
+              <div class="donut-legend" id="donut-legend"></div>
+            </div>
+          </div>
+          <div class="chart-card wide">
+            <div class="chart-header">
+              <span class="chart-title">Top 10 Destination Countries</span>
+            </div>
+            <div class="chart-body">
+              <canvas id="chart-top-countries" aria-label="Top destination countries by communication count" role="img"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top destinations table -->
+        <div class="table-card">
+          <div class="table-header">
+            <span class="table-title">Top Destination Endpoints</span>
+            <span class="table-meta" id="top-dest-meta"></span>
+          </div>
+          <div class="table-wrap">
+            <table id="table-top-dest" aria-label="Top destination endpoints">
+              <thead>
+                <tr>
+                  <th>Destination IP</th>
+                  <th>Port</th>
+                  <th>Protocol</th>
+                  <th>Country</th>
+                  <th>Category</th>
+                  <th class="num-col">Total Comms</th>
+                  <th>First Seen</th>
+                  <th>Last Seen</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-top-dest">
+                <tr><td colspan="8" class="empty-state"><span class="skeleton-line"></span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── VIEW: BY COUNTRY ── -->
+      <section class="view" id="view-country">
+        <div class="view-header">
+          <h1>Country Traffic</h1>
+          <p class="view-sub">Filter all flows to a specific destination country</p>
+        </div>
+        <div class="filter-bar">
+          <div class="select-wrap">
+            <i data-lucide="map-pin"></i>
+            <select id="country-select" aria-label="Select country" data-testid="select-country">
+              <option value="">— Select a country —</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" id="country-load-btn" data-testid="button-load-country">Load</button>
+        </div>
+        <div class="table-card" id="country-table-wrap" style="display:none">
+          <div class="table-header">
+            <span class="table-title" id="country-table-title">Flows</span>
+            <span class="table-meta" id="country-table-meta"></span>
+          </div>
+          <div class="table-wrap">
+            <table id="table-country" aria-label="Traffic by selected country">
+              <thead>
+                <tr>
+                  <th>Src IP</th>
+                  <th>Dst IP</th>
+                  <th>Port</th>
+                  <th>Proto</th>
+                  <th class="num-col">Comms</th>
+                  <th>First Seen</th>
+                  <th>Last Seen</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-country"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── VIEW: EU TRAFFIC ── -->
+      <section class="view" id="view-eu">
+        <div class="view-header">
+          <h1>EU Traffic</h1>
+          <p class="view-sub">Flows terminating within European Union member states</p>
+        </div>
+        <div class="kpi-grid mini">
+          <div class="kpi-card kpi-eu">
+            <div class="kpi-label">Unique EU Flows</div>
+            <div class="kpi-value" id="eu-unique">—</div>
+          </div>
+          <div class="kpi-card kpi-eu">
+            <div class="kpi-label">Total EU Communications</div>
+            <div class="kpi-value" id="eu-comms">—</div>
+          </div>
+        </div>
+        <div class="chart-card" style="max-height:320px">
+          <div class="chart-header"><span class="chart-title">EU Countries Breakdown</span></div>
+          <div class="chart-body">
+            <canvas id="chart-eu-countries" aria-label="EU country breakdown" role="img"></canvas>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-header">
+            <span class="table-title">EU Flows</span>
+            <span class="table-meta" id="eu-table-meta"></span>
+          </div>
+          <div class="table-wrap">
+            <table id="table-eu" aria-label="EU traffic flows">
+              <thead>
+                <tr>
+                  <th>Src IP</th>
+                  <th>Dst IP</th>
+                  <th>Port</th>
+                  <th>Proto</th>
+                  <th>Country</th>
+                  <th class="num-col">Comms</th>
+                  <th>First Seen</th>
+                  <th>Last Seen</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-eu"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── VIEW: NON-EU TRAFFIC ── -->
+      <section class="view" id="view-non-eu">
+        <div class="view-header">
+          <h1>Non-EU Traffic</h1>
+          <p class="view-sub">Flows terminating outside European Union member states</p>
+        </div>
+        <div class="kpi-grid mini">
+          <div class="kpi-card kpi-noneu">
+            <div class="kpi-label">Unique Non-EU Flows</div>
+            <div class="kpi-value" id="noneu-unique">—</div>
+          </div>
+          <div class="kpi-card kpi-noneu">
+            <div class="kpi-label">Total Non-EU Communications</div>
+            <div class="kpi-value" id="noneu-comms">—</div>
+          </div>
+        </div>
+        <div class="chart-card" style="max-height:320px">
+          <div class="chart-header"><span class="chart-title">Non-EU Countries Breakdown</span></div>
+          <div class="chart-body">
+            <canvas id="chart-noneu-countries" aria-label="Non-EU country breakdown" role="img"></canvas>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-header">
+            <span class="table-title">Non-EU Flows</span>
+            <span class="table-meta" id="noneu-table-meta"></span>
+          </div>
+          <div class="table-wrap">
+            <table id="table-noneu" aria-label="Non-EU traffic flows">
+              <thead>
+                <tr>
+                  <th>Src IP</th>
+                  <th>Dst IP</th>
+                  <th>Port</th>
+                  <th>Proto</th>
+                  <th>Country</th>
+                  <th class="num-col">Comms</th>
+                  <th>First Seen</th>
+                  <th>Last Seen</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-noneu"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── VIEW: WATCH COUNTRIES ── -->
+      <section class="view" id="view-watch">
+        <div class="view-header">
+          <h1>Watch Countries</h1>
+          <p class="view-sub">Flows terminating in user-defined high-interest countries</p>
+        </div>
+        <div class="alert-bar alert-warn" id="watch-alert" style="display:none">
+          <i data-lucide="shield-alert"></i>
+          <span id="watch-alert-text"></span>
+        </div>
+        <div class="kpi-grid mini">
+          <div class="kpi-card kpi-watch">
+            <div class="kpi-label">Unique Watch Flows</div>
+            <div class="kpi-value" id="watch-unique">—</div>
+          </div>
+          <div class="kpi-card kpi-watch">
+            <div class="kpi-label">Total Watch Communications</div>
+            <div class="kpi-value" id="watch-comms">—</div>
+          </div>
+        </div>
+        <div class="watch-countries-row" id="watch-tags-container">
+          <!-- watch country tags rendered here -->
+        </div>
+        <div class="table-card">
+          <div class="table-header">
+            <span class="table-title">Watch Country Flows</span>
+            <span class="table-meta" id="watch-table-meta"></span>
+          </div>
+          <div class="table-wrap">
+            <table id="table-watch" aria-label="Watch country traffic flows">
+              <thead>
+                <tr>
+                  <th>Src IP</th>
+                  <th>Dst IP</th>
+                  <th>Port</th>
+                  <th>Proto</th>
+                  <th>Country</th>
+                  <th class="num-col">Comms</th>
+                  <th>First Seen</th>
+                  <th>Last Seen</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-watch"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── VIEW: RECENT FLOWS ── -->
+      <section class="view" id="view-recent">
+        <div class="view-header">
+          <h1>Recent Flows</h1>
+          <p class="view-sub">Most recently seen connections across all categories</p>
+        </div>
+        <div class="table-card">
+          <div class="table-header">
+            <span class="table-title">Latest 100 Flows</span>
+            <button class="btn btn-ghost btn-sm" id="recent-refresh-btn">
+              <i data-lucide="refresh-cw"></i> Refresh
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table id="table-recent" aria-label="Recent traffic flows">
+              <thead>
+                <tr>
+                  <th>Src IP</th>
+                  <th>Dst IP</th>
+                  <th>Port</th>
+                  <th>Proto</th>
+                  <th>Country</th>
+                  <th>Category</th>
+                  <th class="num-col">Comms</th>
+                  <th>Last Seen</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-recent"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── VIEW: SETTINGS ── -->
+      <section class="view" id="view-settings">
+        <div class="view-header">
+          <h1>Settings</h1>
+          <p class="view-sub">Configure watch countries and API connection</p>
+        </div>
+
+        <div class="settings-card">
+          <h2 class="settings-section-title">Watch Countries</h2>
+          <p class="settings-desc">
+            Add ISO 3166-1 alpha-2 country codes to monitor. Flows to these countries
+            will be highlighted on the Watch Countries view and counted in the KPI banner.
+          </p>
+          <div class="watch-editor">
+            <div class="watch-tags" id="settings-watch-tags"></div>
+            <div class="watch-input-row">
+              <input
+                type="text"
+                id="watch-input"
+                placeholder="ISO code, e.g. CN"
+                maxlength="2"
+                data-testid="input-watch-country"
+                aria-label="Country ISO code"
+              />
+              <button class="btn btn-primary" id="watch-add-btn" data-testid="button-add-watch">Add</button>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="watch-save-btn" data-testid="button-save-watch">Save Watch List</button>
+          <span class="save-status" id="watch-save-status"></span>
+        </div>
+
+        <div class="settings-card">
+          <h2 class="settings-section-title">API Endpoint</h2>
+          <p class="settings-desc">The backend URL this dashboard connects to.</p>
+          <div class="watch-input-row">
+            <input
+              type="text"
+              id="api-url-input"
+              placeholder="http://localhost:8000"
+              data-testid="input-api-url"
+              aria-label="API base URL"
+            />
+            <button class="btn btn-primary" id="api-url-save-btn" data-testid="button-save-api-url">Apply</button>
+          </div>
+          <div class="health-row" id="health-row">
+            <span class="health-label">Status:</span>
+            <span class="health-value" id="health-value">checking…</span>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h2 class="settings-section-title">MaxMind GeoLite2</h2>
+          <p class="settings-desc">
+            The backend requires a <strong>GeoLite2-Country.mmdb</strong> file mounted at
+            <code>/mmdb/GeoLite2-Country.mmdb</code>. Download it free from
+            <a href="https://www.maxmind.com/en/geolite2/signup" target="_blank" rel="noopener">MaxMind</a>
+            and bind-mount it into the backend container (see docker-compose.yml).
+          </p>
+          <div class="health-row">
+            <span class="health-label">MMDB status:</span>
+            <span class="health-value" id="mmdb-status">checking…</span>
+          </div>
+        </div>
+      </section>
+
+    </main><!-- /content -->
+  </div><!-- /main-area -->
+</div><!-- /shell -->
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

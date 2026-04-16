@@ -185,13 +185,6 @@ function toast(msg, type = 'success') {
 }
 
 async function apiFetch(path) {
-  // If no backend is running, return static demo data for screenshots/previews
-  if (!API_BASE || API_BASE === window.location.origin) {
-    const demo = DEMO_DATA[path.split('?')[0]];
-    if (demo !== undefined) return Promise.resolve(
-      typeof demo === 'function' ? demo(path) : demo
-    );
-  }
   const url = API_BASE ? `${API_BASE.replace(/\/$/, '')}${path}` : path;
   return fetch(url).then(r => {
     if (!r.ok) {
@@ -201,6 +194,11 @@ async function apiFetch(path) {
       throw new Error(`HTTP ${r.status}: ${path}`);
     }
     return r.json();
+  }).catch(() => {
+    // Fall back to demo data if fetch fails entirely (no backend)
+    const demo = DEMO_DATA[path.split('?')[0]];
+    if (demo !== undefined) return typeof demo === 'function' ? demo(path) : demo;
+    return {};
   });
 }
 

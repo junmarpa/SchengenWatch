@@ -114,6 +114,7 @@ services:
       SENTINEL_DB_PATH:  /data/sentinel.db
       MAXMIND_DB_PATH:   /mmdb/GeoLite2-Country.mmdb
       STATIC_DIR:        /app/static
+      ENABLE_SEED:       "true"   # dev only — remove in production
     networks:
       - schengenwatch-net
     healthcheck:

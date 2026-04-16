@@ -36,9 +36,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 # ── Config ──────────────────────────────────────────────────────────────────
-DB_PATH   = os.getenv("SENTINEL_DB_PATH",  "/data/sentinel.db")
-MMDB_PATH = os.getenv("MAXMIND_DB_PATH",   "/mmdb/GeoLite2-Country.mmdb")
-STATIC_DIR = os.getenv("STATIC_DIR",       "/app/static")
+DB_PATH    = os.getenv("SENTINEL_DB_PATH",  "/data/sentinel.db")
+MMDB_PATH  = os.getenv("MAXMIND_DB_PATH",   "/mmdb/GeoLite2-Country.mmdb")
+STATIC_DIR = os.getenv("STATIC_DIR",        "/app/static")
+# Set ENABLE_SEED=true in dev only — never in production
+ENABLE_SEED = os.getenv("ENABLE_SEED", "false").lower() == "true"
 
 # ── EU member state ISO-3166-1 alpha-2 codes ───────────────────────────────
 EU_COUNTRIES = frozenset({
@@ -130,12 +132,37 @@ async def lifespan(app: FastAPI):
 # ── App ─────────────────────────────────────────────────────────────────────
 app = FastAPI(title="Perimeter Sentinel API", version="1.0.0", lifespan=lifespan)
 
+# Restrict CORS to same-origin by default; override via CORS_ORIGINS env var
+_cors_origins = os.getenv("CORS_ORIGINS", "").split(",") if os.getenv("CORS_ORIGINS") else []
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_cors_origins,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
+
+# ── Security headers middleware ──────────────────────────────────────────────
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: StarletteRequest, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"]         = "DENY"
+        response.headers["X-XSS-Protection"]        = "1; mode=block"
+        response.headers["Referrer-Policy"]          = "strict-origin-when-cross-origin"
+        response.headers["Content-Security-Policy"]  = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' data:; "
+            "connect-src 'self';"
+        )
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
@@ -305,10 +332,12 @@ def set_watch(payload: WatchUpdate):
     return {"watch_countries": sorted(_watch_countries)}
 
 
-# ── Dev: seed route ─────────────────────────────────────────────────────────
+# ── Dev: seed route (disabled in production — set ENABLE_SEED=true to enable) ──
 @app.get("/api/db/seed")
 def seed_db(n: int = Query(200, le=2000)):
     """Inject synthetic traffic rows for demo/testing."""
+    if not ENABLE_SEED:
+        raise HTTPException(status_code=403, detail="Seed endpoint disabled. Set ENABLE_SEED=true to enable.")
     import random
 
     SAMPLE_IPS = [

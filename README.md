@@ -197,6 +197,29 @@ logging trap informational
 
 **pfSense / OPNsense:** Status > System Logs > Settings > Remote Logging > `<SCHENGENWATCH_IP>:514`
 
+**Extreme Networks (ExtremeXOS — UDP 514):**
+```
+# Add SchengenWatch as a syslog target (facility local1, UDP 514)
+configure syslog add <SCHENGENWATCH_IP> local1
+enable log target syslog <SCHENGENWATCH_IP> local1
+enable syslog
+
+# Optional: enable CLI audit logging (records every config change with user + source IP)
+enable cli config-logging
+```
+
+Up to four syslog servers can be configured simultaneously. Supported on ExtremeSwitching X435, X440-G2, X450-G2, X460-G2, X465, X590, X620, and X695 series switches running ExtremeXOS 22.4+.
+
+**Extreme Networks (ExtremeXOS — TLS 6514):**
+```
+# Encrypted syslog over TLS (port 6514 is the ExtremeXOS default)
+configure syslog add <SCHENGENWATCH_IP> tls-port 6514 local1
+enable log target syslog <SCHENGENWATCH_IP> local1
+enable syslog
+```
+
+See [ExtremeXOS configure syslog documentation](https://documentation.extremenetworks.com/exos_commands_22.4/exos_21_1/exos_commands_all/r_configure-syslog-add.shtml) for full syntax reference.
+
 ---
 
 ### NetFlow / IPFIX (UDP 2055)
@@ -240,6 +263,37 @@ add dst-address=<SCHENGENWATCH_IP> port=2055 version=5
 set forwarding-options sampling instance default family inet \
     output flow-server <SCHENGENWATCH_IP> port 2055 version9 template ipv4
 ```
+
+**Extreme Networks (ExtremeXOS — IPFIX, X460-G2 series):**
+```
+# Configure flow keys (5-tuple: src/dst IP, src/dst port, protocol)
+configure ip-fix flow-key ipv4 src-ip dest-ip src-port dest-port protocol
+
+# Enable IPFIX on all ports (IPv4 traffic)
+enable ip-fix ports all ipv4
+
+# Point the collector at SchengenWatch
+configure ip-fix collector <SCHENGENWATCH_IP> port 2055
+
+# Enable IPFIX globally
+enable ip-fix
+```
+
+IPFIX is supported on ExtremeSwitching X460-G2 series switches. Flow count is limited to 4K (2K ingress, 2K egress) per switch. See [Extreme Networks IPFIX documentation](https://documentation.extremenetworks.com/exos_32.1/GUID-BA130F20-2293-4EE4-A7E9-1514D6624741.shtml) for full reference.
+
+**Extreme Networks (EOS / legacy switches — NetFlow v9):**
+```
+set netflow export-interval 1
+set netflow export-destination <SCHENGENWATCH_IP> 2055
+set netflow cache enable
+set netflow export-version 9
+set netflow template refresh-rate 600 timeout 1
+
+# Enable NetFlow on each interface (repeat per interface)
+set netflow port <INTERFACE_NAME> enable both
+```
+
+Applies to older Extreme Networks (formerly Enterasys) EOS-based switches.
 
 ---
 
@@ -392,6 +446,85 @@ schengenwatch/
     ├── logo.jpg          ← Damovo Traces sidebar logo
     └── traces.jpg        ← Damovo Traces topbar logo
 ```
+
+---
+
+## Compliance
+
+SchengenWatch provides continuous, automated technical evidence to support your organisation's obligations under the following frameworks. It does not replace legal advice, a formal Data Protection Impact Assessment (DPIA), or a certified audit — but it gives compliance, security, and legal teams the real-time visibility they need to demonstrate control.
+
+### GDPR (General Data Protection Regulation)
+
+| Requirement | How SchengenWatch Helps |
+|---|---|
+| **Art. 44-49** — Restricted transfers to third countries | Non-EU Alerts view flags every flow leaving the EEA in real time; provides timestamped evidence for regulatory enquiries |
+| **Art. 32** — Security of processing | Demonstrates that technical controls are in place to monitor and detect unauthorised data transfers |
+| **Art. 30** — Records of processing activities | Flow logs (src/dst IP, port, protocol, first/last seen) provide a machine-readable audit trail |
+| **Art. 35** — Data Protection Impact Assessment | SchengenWatch output can be referenced as supporting evidence in a DPIA for cross-border data flows |
+| **Schrems II** | Identifies flows to US and other third countries lacking an EU adequacy decision, prompting review of legal basis |
+
+### NIS2 Directive (EU 2022/2555)
+
+| Requirement | How SchengenWatch Helps |
+|---|---|
+| **Art. 21** — Risk management measures | Provides a dedicated control for monitoring network-layer data flows across jurisdictional boundaries |
+| **Art. 23** — Incident reporting | Non-EU and watch-country alerts generate timestamped records that can be included in incident notification to national competent authorities |
+| **Supply chain security** | Watch-list feature enables operators to flag flows to specific third-country suppliers or service providers |
+| **Access controls and monitoring** | Continuous flow visibility supports the network monitoring requirements for operators of essential services and important entities |
+
+### DORA (Digital Operational Resilience Act — EU 2022/2554)
+
+| Requirement | How SchengenWatch Helps |
+|---|---|
+| **Art. 9** — ICT risk management | Network flow monitoring is a required technical control; SchengenWatch provides continuous coverage without a SIEM dependency |
+| **Art. 28** — ICT third-party risk | Identifies outbound connections to non-EU third-party providers; supports ICT concentration risk assessments |
+| **Art. 10** — Detection | Real-time alerting on cross-border flows supports DORA's requirement to detect anomalous network activities |
+| **Art. 12** — Backup and recovery | Exported flow data (SQLite DB) can be included in backup and recovery procedures as part of ICT continuity planning |
+
+### ISO/IEC 27001:2022
+
+| Control | How SchengenWatch Helps |
+|---|---|
+| **A.8.15** — Logging | Structured, append-only flow logs with timestamps, IPs, ports, and protocol |
+| **A.8.16** — Monitoring activities | Continuous NetFlow/syslog ingestion and dashboard alerting for anomalous or policy-violating flows |
+| **A.5.14** — Information transfer | Technical control verifying that data transfers remain within approved jurisdictions |
+| **A.8.23** — Web filtering / network controls | Flow-level visibility into all outbound connections, not just HTTP |
+| **A.5.30** — ICT readiness for business continuity | Flow history supports post-incident analysis and business continuity reporting |
+
+### NIST Cybersecurity Framework (CSF 2.0)
+
+| Function / Category | How SchengenWatch Helps |
+|---|---|
+| **IDENTIFY (ID.AM)** — Asset management | Maps active network communication relationships between internal assets and external destinations |
+| **PROTECT (PR.DS)** — Data security | Enforces visibility over data-in-transit flows; supports jurisdiction-based data handling policies |
+| **DETECT (DE.CM)** — Continuous monitoring | Real-time syslog and NetFlow ingestion with immediate alerting on non-EU and watch-country flows |
+| **DETECT (DE.AE)** — Anomaly detection | Watch-list matching and Non-EU Alerts provide anomaly detection for flows to unexpected destinations |
+| **RESPOND (RS.AN)** — Analysis | Timestamped flow records support incident analysis and root-cause investigation |
+| **RECOVER (RC.CO)** — Communications | Flow logs can be shared with regulators and stakeholders as evidence of detection and response capability |
+
+### Cyber Resilience Act (CRA — EU 2024/2847)
+
+| Requirement | How SchengenWatch Helps |
+|---|---|
+| **Art. 13** — Security by design | SchengenWatch is self-hosted and processes no external data; no PII is stored beyond IP addresses and ports |
+| **Vulnerability management** | OWASP Top 10 assessment completed; CVEs patched; dependency pinning enforced |
+| **Transparency and documentation** | Open-source codebase; full architecture, API, and security documentation in this README |
+| **Incident and anomaly reporting** | Non-EU Alerts and watch-list flows provide the detection layer needed to identify and report security-relevant network events |
+
+### BSI IT-Grundschutz
+
+| Baustein | How SchengenWatch Helps |
+|---|---|
+| **NET.1.1** — Netzarchitektur und -design | Supports documentation of network communication relationships and data flows between zones |
+| **NET.3.2** — Router und Switches | Provides a receiving endpoint for syslog and NetFlow from network infrastructure, enabling centralised flow visibility |
+| **OPS.1.1.5** — Protokollierung | Continuous, structured logging of all network flows with src/dst IP, port, protocol, and timestamps |
+| **OPS.1.1.6** — Software-Tests und Freigaben | OWASP assessment documented; all containers use pinned, reviewed base images |
+| **CON.2** — Datenschutz | Technical enforcement of GDPR Art. 44-49 data transfer restrictions at the network layer |
+| **DER.1** — Detektion von sicherheitsrelevanten Ereignissen | Real-time alerting on flows to non-EU destinations and user-defined watch countries |
+
+---
+
+> SchengenWatch does not replace legal advice, a formal DPIA, or a certified compliance audit. It provides the continuous technical evidence layer that supports those processes.
 
 ---
 

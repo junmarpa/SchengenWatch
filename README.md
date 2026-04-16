@@ -128,6 +128,52 @@ SchengenWatch does not replace legal advice or a formal Data Protection Impact A
 
 ---
 
+## Infrastructure Requirements
+
+### Minimum — Lab / Proof of Concept
+
+> Single firewall or router, low-traffic environment, no HA requirement.
+
+| Resource | Minimum |
+|---|---|
+| **CPU** | 2 vCPUs (x86-64 or ARM64) |
+| **RAM** | 2 GB |
+| **Disk** | 20 GB SSD |
+| **OS** | Any Linux with Docker Engine ≥ 24 + Compose v2 |
+| **Network** | 100 Mbps NIC |
+| **Flow rate** | Up to ~500 flows/sec syslog, ~1,000 flows/sec NetFlow |
+
+Suitable hardware: Raspberry Pi 5 (8 GB), Intel NUC, any modest VPS, or a spare workstation.
+
+### Recommended — SME Production
+
+> Multiple firewalls/switches, several concurrent analysts, sustained traffic, months of history.
+
+| Resource | Recommended |
+|---|---|
+| **CPU** | 4 vCPUs (x86-64) |
+| **RAM** | 8 GB |
+| **Disk** | 100 GB NVMe SSD |
+| **OS** | Ubuntu 22.04 LTS or Debian 12 — Docker Engine ≥ 24 + Compose v2 |
+| **Network** | 1 Gbps NIC; dedicated interface for syslog/NetFlow ingestion recommended |
+| **Flow rate** | ~5,000–10,000 flows/sec sustained across syslog + NetFlow combined |
+| **Reverse proxy** | nginx or Caddy in front of port 8000 — TLS termination + basic auth |
+| **Retention** | SQLite DB grows ~200–400 bytes per unique flow (deduplication reduces this significantly); 100 GB covers years of typical SME traffic |
+
+Suitable hosting: a mid-range dedicated server, on-prem VM (Proxmox/ESXi), or a cloud instance equivalent to AWS t3.xlarge / Azure D4s v3 / GCP e2-standard-4.
+
+### Production Hardening Checklist
+
+- [ ] Set `ENABLE_SEED=false` in `docker-compose.yml` — the dev default is `true`
+- [ ] Place nginx or Caddy in front of port 8000 with TLS and basic auth
+- [ ] Set `CORS_ORIGINS` to your dashboard hostname if serving beyond localhost
+- [ ] Bind syslog/NetFlow ports to the internal-facing NIC only (e.g. `<internal_ip>:514:514`) to avoid exposing them on a public interface
+- [ ] Add a SQLite backup cron: `sqlite3 sentinel.db ".backup /backups/sentinel-$(date +%F).db"`
+- [ ] Configure log rotation for `traffic.jsonl` — syslog-ng appends indefinitely
+- [ ] Set `mem_limit` and `cpus` in `docker-compose.yml` to prevent any container starving the host under a log flood
+
+---
+
 ## Prerequisites
 
 | Requirement | Notes |

@@ -200,6 +200,33 @@ table { border-collapse: collapse; width: 100%; }
 .logo-text,
 .logo-sub { display: none !important; }
 
+.sidebar-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.sidebar-brand-name {
+  font-size: var(--text-base);
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.sidebar-brand-sub {
+  font-size: 9px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.shell.collapsed .sidebar-brand-text { display: none; }
+
 .shell.collapsed .logo-img { height: 28px; }
 
 .sidebar-nav {

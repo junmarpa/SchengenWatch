@@ -84,19 +84,19 @@
 
 /* ── Dark Theme (default) ───────────────────────────── */
 [data-theme="dark"] {
-  /* Dark theme: deep Damovo burgundy-rooted dark surfaces */
-  --bg:            #1a0010;
-  --surface:       #240016;
-  --surface-2:     #2e001d;
-  --surface-3:     #3b0026;
-  --border:        #52003a;
-  --border-2:      #640032;
-  --text:          #f0e8ed;
-  --text-muted:    #b894a8;
-  --text-faint:    #6b3d58;
-  --sidebar-bg:    #130009;
-  --sidebar-text:  #c4a0b6;
-  --topbar-bg:     rgba(26, 0, 16, 0.94);
+  /* Dark theme: neutral dark surfaces with Damovo accent colours */
+  --bg:            #0f1117;
+  --surface:       #1a1d27;
+  --surface-2:     #222636;
+  --surface-3:     #2a2f44;
+  --border:        #2e3347;
+  --border-2:      #3d4460;
+  --text:          #e8eaf0;
+  --text-muted:    #8b92ad;
+  --text-faint:    #4a5070;
+  --sidebar-bg:    #640032;
+  --sidebar-text:  #f0d0e0;
+  --topbar-bg:     rgba(15, 17, 23, 0.94);
 }
 
 /* ── Light Theme ────────────────────────────────────── */

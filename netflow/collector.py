@@ -282,10 +282,8 @@ def parse_v9_ipfix(data: bytes, exporter_ip: str) -> list[dict]:
 
     version = struct.unpack_from("!H", data, 0)[0]
     if version == 9:
-        # NFv9 header: version(2) count(2) uptime(4) unix_secs(4) seq(4) src_id(4)
-        count, _, unix_secs, _, source_id = struct.unpack_from("!HIIIH", data, 0)[1:]  # noqa
-        # Reparse cleanly
-        _ver, count, _up, _secs, _seq, source_id = struct.unpack_from("!HIIIII", data, 0)
+        # NFv9 header: version(2) count(2) uptime(4) unix_secs(4) seq(4) src_id(4) = 20 bytes
+        _ver, count, _up, _secs, _seq, source_id = struct.unpack_from("!HHIIII", data, 0)
         obs_domain = source_id
         offset = 20
     else:

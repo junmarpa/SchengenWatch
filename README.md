@@ -16,6 +16,8 @@ SchengenWatch is a lightweight, self-hosted alternative that answers one questio
 
 It classifies every outbound connection by destination country, flags anything leaving the EU, and highlights communications to specific high-interest jurisdictions. No data leaves your environment. No SaaS dependency. No per-seat licensing.
 
+SchengenWatch goes beyond simple geo-classification: it resolves every flow's **Autonomous System** via MaxMind GeoLite2-ASN and matches it against a curated corporate-ownership graph. A flow to an EU-hosted Microsoft, Google or AWS endpoint is flagged as Non-EU because the ultimate beneficial owner falls under the US CLOUD Act — the same principle applies to UK_IPA, CN_NSL and FISA §702. Data sovereignty is evaluated by jurisdiction, not just by IP geography.
+
 ---
 
 ## Dashboard Screenshots
@@ -92,7 +94,10 @@ Firewall / Router
          ▼                                         │
 ┌─────────────────────────┐                        │
 │ backend                 │◀───────────────────────┘
-│ FastAPI + GeoLite2      │
+│ FastAPI                 │
+│ GeoLite2-Country (geo)  │
+│ GeoLite2-ASN (ASN+org)  │
+│ jurisdiction/*.yaml     │
 │ REST API + dashboard    │
 │ http://localhost:8000   │
 └─────────────────────────┘
@@ -111,6 +116,43 @@ Firewall / Router
 | **Watch Countries** | Flows to user-defined high-risk jurisdictions (e.g. CN, RU, US) |
 | **Recent Flows** | Live feed of the last 100 connections |
 | **Settings** | Configure home country, watch list, API endpoint |
+
+---
+
+## Jurisdiction Classification
+
+SchengenWatch classifies every flow by two independent dimensions:
+
+1. **Geography** — the destination IP's country, from GeoLite2-Country
+2. **Legal jurisdiction** — the ultimate beneficial owner (UBO) of the destination ASN, from a curated corporate-ownership graph
+
+A flow carrying any jurisdiction tag is treated as **Non-EU**, even when the destination country is inside the EU. Example: traffic to `104.40.0.1` (Microsoft Ireland, country `IE`) resolves to `MSFT_ROOT` via ASN 8075 and is tagged `US_CLOUD_ACT` + `US_FISA_702` — the flow is shown under Non-EU Alerts, not EU Traffic.
+
+### Supported Jurisdiction Tags
+
+| Tag | Legal Basis | Risk |
+|---|---|---|
+| `US_CLOUD_ACT` | Clarifying Lawful Overseas Use of Data Act (2018) | High |
+| `US_FISA_702` | Foreign Intelligence Surveillance Act §702 (reauth. 2024) | Critical |
+| `CN_NSL` | Chinese National Intelligence Law (2017) + HK NSL (2020) | Critical |
+| `UK_IPA` | UK Investigatory Powers Act (2016, amended 2024) | High |
+
+Definitions live in [`jurisdiction/jurisdiction_policy.yaml`](jurisdiction/jurisdiction_policy.yaml).
+
+### Corporate Ownership Graph
+
+[`jurisdiction/parent_company_graph.yaml`](jurisdiction/parent_company_graph.yaml) is the single source of truth for:
+
+- Corporate ownership chains (tier-0 UBO → tier-1 subsidiary → ...)
+- ASN-number assignments per entity
+- MaxMind `autonomous_system_organization` pattern matches
+- Jurisdiction tag assignments (set on the UBO, cascaded automatically)
+
+On backend startup the graph is parsed, tags are resolved recursively up to the UBO, and two lookup tables are built: `ASN number → tags` and `org-name substring → tags`. The ASN lookup wins when both match.
+
+Currently mapped: Microsoft, Alphabet, Amazon, Meta, Apple, Oracle, Salesforce, IBM, Cloudflare, Akamai, Fastly, DigitalOcean, Zscaler, Palo Alto Networks, CrowdStrike, AT&T, Verizon, Lumen, Twilio, Alibaba, Tencent, Huawei, ByteDance, Baidu, China Telecom/Unicom/Mobile, BT, Virgin Media O2, Sky UK, Vodafone UK, TalkTalk, Telefónica UK.
+
+Adding a new entity requires no code change — edit the YAML and restart the backend container.
 
 ---
 
@@ -171,6 +213,7 @@ Suitable hosting: a mid-range dedicated server, on-prem VM (Proxmox/ESXi), or a 
 - [ ] Add a SQLite backup cron: `sqlite3 sentinel.db ".backup /backups/sentinel-$(date +%F).db"`
 - [ ] Configure log rotation for `traffic.jsonl` — syslog-ng appends indefinitely
 - [ ] Set `mem_limit` and `cpus` in `docker-compose.yml` to prevent any container starving the host under a log flood
+- [ ] Review and update `jurisdiction/parent_company_graph.yaml` quarterly or after significant M&A events (new entities, ownership changes)
 
 ---
 
@@ -179,19 +222,25 @@ Suitable hosting: a mid-range dedicated server, on-prem VM (Proxmox/ESXi), or a 
 | Requirement | Notes |
 |---|---|
 | Docker Engine ≥ 24 | Compose v2 included |
-| MaxMind GeoLite2-Country.mmdb | Free — see below |
+| MaxMind GeoLite2-Country.mmdb | Free — country-level geo classification |
+| MaxMind GeoLite2-ASN.mmdb | Free — ASN + organisation name for jurisdiction classification |
 | Firewall configured to send syslog or NetFlow | UDP 514 / TCP 514 / UDP 2055 |
 
-### Obtaining GeoLite2-Country.mmdb
+### Obtaining the GeoLite2 Databases
+
+SchengenWatch uses **two** MaxMind databases. Both are free, both are downloaded from the same MaxMind account, and both must sit side-by-side in `./mmdb/`.
 
 1. Create a free account at [maxmind.com/en/geolite2/signup](https://www.maxmind.com/en/geolite2/signup)
-2. Download **GeoLite2 Country** (`.mmdb` format)
-3. Place the file at `./mmdb/GeoLite2-Country.mmdb`
+2. Download **GeoLite2 Country** and **GeoLite2 ASN** (both in `.mmdb` format)
+3. Place both files in `./mmdb/`:
 
 ```bash
 mkdir -p mmdb
 cp ~/Downloads/GeoLite2-Country_*/GeoLite2-Country.mmdb mmdb/
+cp ~/Downloads/GeoLite2-ASN_*/GeoLite2-ASN.mmdb         mmdb/
 ```
+
+Without `GeoLite2-ASN.mmdb` the backend still runs, but jurisdiction tags (`US_CLOUD_ACT`, `US_FISA_702`, `CN_NSL`, `UK_IPA`) are not resolved and flows fall back to pure country-based classification.
 
 ---
 
@@ -201,9 +250,10 @@ cp ~/Downloads/GeoLite2-Country_*/GeoLite2-Country.mmdb mmdb/
 git clone https://github.com/andrewsmhay/SchengenWatch.git
 cd SchengenWatch
 
-# 1. Add your MaxMind database
+# 1. Add both MaxMind databases
 mkdir -p mmdb
 cp /path/to/GeoLite2-Country.mmdb mmdb/
+cp /path/to/GeoLite2-ASN.mmdb     mmdb/
 
 # 2. Start everything
 docker compose up -d
@@ -366,7 +416,7 @@ Flows are deduplicated — if a flow already exists from syslog or NetFlow, `las
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/api/health` | Liveness probe (DB + MMDB status) |
+| GET | `/api/health` | Liveness probe — reports DB, both MMDBs, jurisdiction entry count, and `FILTER_PRIVATE_DST` flag |
 | GET | `/api/stats/summary` | All KPI counts |
 | GET | `/api/traffic/country?iso=DE` | Flows to a specific country |
 | GET | `/api/traffic/eu` | EU flows |
@@ -380,6 +430,12 @@ Flows are deduplicated — if a flow already exists from syslog or NetFlow, `las
 | POST | `/api/settings/watch` | Update watch countries `{"countries":["RU","CN"]}` |
 | POST | `/api/ingest/pcap` | Upload `.pcap` / `.pcapng`, extract flows |
 | GET | `/api/db/seed?n=300` | Inject demo data (`ENABLE_SEED=true` required) |
+
+All flow-returning endpoints (`/api/traffic/*`, `/api/top/destinations`, `/api/recent`) include the following per-flow enrichment fields when the ASN database and jurisdiction YAMLs are loaded:
+
+- `asn` — autonomous system number (integer) or `null`
+- `org_name` — MaxMind `autonomous_system_organization` string or `null`
+- `jurisdiction_tags` — array of tag strings (e.g. `["US_CLOUD_ACT", "US_FISA_702"]`); empty when the destination's UBO has no policy tags assigned
 
 ---
 
@@ -407,7 +463,10 @@ Flows are deduplicated — if a flow already exists from syslog or NetFlow, `las
 | Variable | Default | Description |
 |---|---|---|
 | `SENTINEL_DB_PATH` | `/data/sentinel.db` | SQLite database path |
-| `MAXMIND_DB_PATH` | `/mmdb/GeoLite2-Country.mmdb` | MaxMind MMDB path |
+| `MAXMIND_DB_PATH` | `/mmdb/GeoLite2-Country.mmdb` | MaxMind country MMDB path |
+| `MAXMIND_ASN_DB_PATH` | `/mmdb/GeoLite2-ASN.mmdb` | MaxMind ASN MMDB path — enables ASN/org enrichment and jurisdiction tagging |
+| `CLASSIFICATION_DIR` | `/app/jurisdiction` | Directory containing `jurisdiction_policy.yaml` + `parent_company_graph.yaml` |
+| `FILTER_PRIVATE_DST` | `false` | Set `true` to drop flows whose destination is an RFC 1918 / loopback / link-local address (reduces noise from internal LAN traffic) |
 | `STATIC_DIR` | `/app/static` | Dashboard static files |
 | `ENABLE_SEED` | `false` | Set `true` to enable `/api/db/seed` (dev only — disable in production) |
 | `CORS_ORIGINS` | _(empty)_ | Comma-separated allowed CORS origins — leave unset for same-origin only |
@@ -468,7 +527,10 @@ schengenwatch/
 ├── docker-compose.yml
 ├── README.md
 ├── .gitignore
-├── mmdb/                          ← place GeoLite2-Country.mmdb here
+├── mmdb/                          ← GeoLite2-Country.mmdb + GeoLite2-ASN.mmdb
+├── jurisdiction/                  ← jurisdiction classification policy
+│   ├── jurisdiction_policy.yaml   ← tag definitions (US_CLOUD_ACT, CN_NSL, …)
+│   └── parent_company_graph.yaml  ← corporate ownership + ASN assignments
 ├── data/                          ← SQLite DB (runtime)
 ├── pcaps/                         ← drop .pcap files here (git-ignored)
 ├── syslog-ng/
@@ -503,11 +565,11 @@ SchengenWatch provides continuous, automated technical evidence to support your 
 
 | Requirement | How SchengenWatch Helps |
 |---|---|
-| **Art. 44-49** — Restricted transfers to third countries | Non-EU Alerts view flags every flow leaving the EEA in real time; provides timestamped evidence for regulatory enquiries |
+| **Art. 44-49** — Restricted transfers to third countries | Non-EU Alerts view flags every flow leaving the EEA in real time — including flows to EU-hosted infrastructure owned by non-EU parent companies (jurisdiction-aware classification via GeoLite2-ASN + corporate ownership graph); provides timestamped evidence for regulatory enquiries |
 | **Art. 32** — Security of processing | Demonstrates that technical controls are in place to monitor and detect unauthorised data transfers |
 | **Art. 30** — Records of processing activities | Flow logs (src/dst IP, port, protocol, first/last seen) provide a machine-readable audit trail |
 | **Art. 35** — Data Protection Impact Assessment | SchengenWatch output can be referenced as supporting evidence in a DPIA for cross-border data flows |
-| **Schrems II** | Identifies flows to US and other third countries lacking an EU adequacy decision, prompting review of legal basis |
+| **Schrems II** | Identifies flows subject to US surveillance law (CLOUD Act, FISA §702) even when the destination IP geolocates inside the EU — the UBO-based jurisdiction classifier surfaces exactly the transfer scenarios the CJEU ruling targeted, prompting review of legal basis and supplementary measures |
 
 ### NIS2 Directive (EU 2022/2555)
 
